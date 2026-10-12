@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake — Ymir</title>
+<style>
+  body { background:#1e1e2e; color:#eee; font-family:sans-serif; padding:10px; margin:0; padding-bottom:80px; }
+  h1 { font-size:18px; text-align:center; margin-bottom:6px; }
+  .status { text-align:center; font-size:12px; opacity:0.7; margin-bottom:8px; }
+  .tops-row { display:grid; grid-template-columns: 1fr 1.6fr; gap:8px; margin-bottom:10px; }
+  @media (max-width: 700px) { .tops-row { grid-template-columns: 1fr; } }
+  .waiting-wrap { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  @media (max-width: 500px) { .waiting-wrap { grid-template-columns: 1fr; } }
+  .top-box { background:#2a2a3c; border:1px solid #444; border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; }
+  .top-box.active { border-color:#7a4a00; }
+  .top-box.waiting { border-color:#2e5a2e; }
+  .top-box h2 { font-size:12px; margin:0 0 6px; display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .top-box h2 .count { background:#3a3a4c; padding:1px 6px; border-radius:8px; font-size:10px; opacity:0.8; }
+  .top-box.active h2 .count { background:#7a4a00; }
+  .top-box.waiting h2 .count { background:#2e5a2e; }
+  .top-list { list-style:none; padding:0; margin:0 0 8px; font-size:12px; flex:1; }
+  .top-list li { padding:5px 0; border-bottom:1px solid #3a3a4c; display:flex; justify-content:space-between; gap:8px; align-items:center; cursor:pointer; transition: background 0.15s; border-radius:4px; }
+  .top-list li:hover { background:#3a3a4c; }
+  .top-list li.copied-row { background:#2e7d32; }
+  .top-list li.empty { cursor:default; }
+  .top-list li:last-child { border-bottom:none; }
+  .top-list li.empty { opacity:0.5; font-style:italic; font-size:11px; }
+  .top-list .loc-name { flex:1; }
+  .top-list .loc-time { font-weight:bold; white-space:nowrap; font-family:monospace; font-size:11px; text-align:right; }
+  .top-list .loc-time.spawn { color:#f9a825; }
+  .top-list .loc-time.done  { color:#e53935; }
+  .top-list .loc-time.alive { color:#66bb6a; }
+  .top-list .loc-time .utc { color:#888; font-weight:normal; font-size:10px; }
+  .copy-btn { background:#3a3a4c; color:#eee; border:none; padding:6px 8px; border-radius:6px; font-size:11px; cursor:pointer; transition: background 0.2s; width:100%; }
+  .copy-btn:hover { background:#4a4a5c; }
+  .copy-btn.copied { background:#2e7d32; color:#fff; }
+  .copy-btn.empty { opacity:0.4; }
+  .copy-row { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
+  .legend { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; font-size:11px; margin-bottom:8px; opacity:0.85; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+  .legend .dot { display:inline-block; width:12px; height:12px; border-radius:3px; }
+  .dot.alive { background:#2e7d32; }
+  .dot.spawn { background:#f9a825; }
+  .dot.done  { background:#e53935; }
+  .sound-bar { display:flex; justify-content:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .sound-btn { background:#2a2a3c; color:#eee; border:1px solid #444; padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .sound-btn:hover { background:#3a3a4c; }
+  .sound-btn.muted { opacity:0.5; }
+  .sound-btn.active { background:#1565c0; border-color:#1976d2; }
+  .loc { margin-bottom:8px; padding:8px; background:#2a2a3c; border-radius:8px; transition: opacity 0.3s; }
+  .loc h2 { font-size:13px; margin:0 0 6px; line-height:1.3; }
+  .loc h2 .en { font-size:11px; opacity:0.6; font-weight:normal; }
+  .channels { display:flex; flex-wrap:wrap; gap:6px; }
+  .btn { padding:8px 10px; border-radius:6px; border:none; cursor:pointer; background:#444; color:#fff; font-size:12px; min-width:80px; display:flex; flex-direction:column; align-items:center; transition: box-shadow 0.3s; }
+  .btn.alive { background:#2e7d32; }
+  .btn.spawn { background:#f9a825; color:#000; animation: pulse 1.5s infinite; }
+  .btn.done  { background:#e53935; color:#fff; animation: pulseRed 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(249,168,37,0.7); } 50% { box-shadow: 0 0 0 8px rgba(249,168,37,0); } }
+  @keyframes pulseRed { 0%, 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0.7); } 50% { box-shadow: 0 0 0 8px rgba(229,57,53,0); } }
+  .timer { font-size:11px; opacity:0.9; }
+  #bottomBar { position:fixed; bottom:0; left:0; right:0; display:flex; background:#12121c; border-top:2px solid #444; box-shadow:0 -4px 20px rgba(0,0,0,0.7); z-index:90; flex-wrap:wrap; }
+  .bottom-side { flex:1; padding:10px 14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-width:0; }
+  .bottom-left { border-right:2px solid #444; border-top:2px solid transparent; }
+  .bottom-left.spawn { border-top-color:#f9a825; background:#1c1a10; }
+  .bottom-left.done  { border-top-color:#e53935; background:#1c1010; }
+  .bottom-right      { border-top:2px solid #f9a825; background:#1c1a10; }
+  .bottom-right.empty { border-top-color:#444; background:#12121c; opacity:0.5; }
+  .bottom-label { font-size:12px; color:#bbb; white-space:nowrap; }
+  .bottom-location { font-size:13px; font-weight:bold; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+  .bottom-time { font-size:18px; font-weight:bold; font-family:monospace; color:#66bb6a; padding:2px 10px; background:#1a2a1a; border-radius:6px; min-width:90px; text-align:center; white-space:nowrap; }
+  .bottom-left.spawn .bottom-time { color:#f9a825; background:#2a1f00; }
+  .bottom-left.done .bottom-time  { color:#e53935; background:#2a0f0f; }
+  .bottom-right .bottom-time      { color:#f9a825; background:#2a1f00; }
+  .bottom-right.empty .bottom-time { color:#555; background:#1a1a1a; }
+  @media (max-width: 700px) { #bottomBar { flex-direction:column; } .bottom-left { border-right:none; border-bottom:2px solid #444; } .bottom-time { font-size:15px; min-width:75px; } .bottom-label { font-size:11px; } .bottom-location { font-size:12px; } }
+  #undoBar { position:fixed; bottom:70px; left:0; right:0; background:#c62828; color:#fff; padding:12px; display:none; justify-content:center; align-items:center; gap:12px; box-shadow:0 -2px 10px rgba(0,0,0,0.5); z-index:100; }
+  #undoBar.show { display:flex; }
+  #undoBar span { font-size:13px; }
+  #undoBtn { background:#fff; color:#c62828; border:none; border-radius:6px; padding:8px 16px; font-size:14px; font-weight:bold; cursor:pointer; }
+  #undoBtn:hover { background:#ffcdd2; }
+  #undoTimer { font-size:12px; opacity:0.8; }
+  #confirmModal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:none; justify-content:center; align-items:center; z-index:200; }
+  #confirmModal.show { display:flex; }
+  #confirmBox { background:#2a2a3c; padding:20px; border-radius:12px; max-width:340px; width:90%; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.6); }
+  #confirmBox h3 { margin:0 0 10px; font-size:16px; color:#fff; }
+  #confirmBox p { margin:0 0 20px; font-size:13px; opacity:0.8; line-height:1.4; }
+  #confirmBox .actions { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  #confirmBox button { padding:10px 16px; border:none; border-radius:6px; font-size:13px; cursor:pointer; font-weight:bold; min-width:80px; }
+  #confirmYes { background:#c62828; color:#fff; }
+  #confirmYes:hover { background:#e53935; }
+  #confirmNo  { background:#555; color:#fff; }
+  #confirmNo:hover { background:#666; }
+  #confirmSet { background:#1565c0; color:#fff; }
+  #confirmSet:hover { background:#1976d2; }
+  #timeModal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:none; justify-content:center; align-items:center; z-index:210; }
+  #timeModal.show { display:flex; }
+  #timeBox { background:#2a2a3c; padding:20px; border-radius:12px; max-width:320px; width:90%; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.6); }
+  #timeBox h3 { margin:0 0 10px; font-size:16px; color:#fff; }
+  #timeBox p { margin:0 0 14px; font-size:13px; opacity:0.8; }
+  #timeInput { width:100%; padding:10px; font-size:16px; border-radius:6px; border:1px solid #555; background:#1e1e2e; color:#eee; margin-bottom:16px; box-sizing:border-box; font-family:monospace; }
+  #timeBox .actions { display:flex; gap:10px; justify-content:center; }
+  #timeBox button { padding:10px 20px; border:none; border-radius:6px; font-size:14px; cursor:pointer; font-weight:bold; min-width:100px; }
+  #timeCancel { background:#555; color:#fff; }
+  #timeCancel:hover { background:#666; }
+  #timeSave { background:#2e7d32; color:#fff; }
+  #timeSave:hover { background:#388e3c; }
+  #app .loc.secret { border:1px dashed #7a4a00; background:#1e1a2e; margin-top:16px; }
+  #app .loc.secret h2 { color:#d0a0ff; }
+</style>
+</head>
+<body>
+<h1>🔥 Cake (Ymir)</h1>
+<div class="status" id="status">Підключення до Firebase...</div>
+<div class="tops-row">
+  <div class="top-box active">
+    <h2><span>🟡🔴 Active spawns <span class="count" id="activeCount">0</span></span></h2>
+    <ul class="top-list" id="activeList"><li class="empty">None</li></ul>
+    <div class="copy-row">
+      <button class="copy-btn" id="copyActiveBtn">📄 Copy</button>
+      <button class="copy-btn" id="copyYellowBtn">🟡 Yellow</button>
+    </div>
+  </div>
+  <div class="waiting-wrap">
+    <div class="top-box waiting">
+      <h2><span>🟢 Waiting 1-3 <span class="count" id="waiting1Count">0</span></span></h2>
+      <ul class="top-list" id="waiting1List"><li class="empty">None</li></ul>
+      <button class="copy-btn" id="copyWaiting1Btn">📄 Copy</button>
+    </div>
+    <div class="top-box waiting">
+      <h2><span>🟢 Waiting 4-6 <span class="count" id="waiting2Count">0</span></span></h2>
+      <ul class="top-list" id="waiting2List"><li class="empty">None</li></ul>
+      <button class="copy-btn" id="copyWaiting2Btn">📄 Copy</button>
+    </div>
+  </div>
+</div>
+<div class="legend">
+  <span><span class="dot alive"></span>Waiting (3h)</span>
+  <span><span class="dot spawn"></span>Spawn window (3–4h) 🔊 Gong</span>
+  <span><span class="dot done"></span>Already spawned 🔊 Siren</span>
+</div>
+<div class="sound-bar">
+  <button class="sound-btn" id="gongToggle">🔔 Gong: ON</button>
+  <button class="sound-btn" id="sirenToggle">🚨 Siren: ON</button>
+  <button class="sound-btn" id="testSound">🎵 Test</button>
+</div>
+<div class="sound-bar">
+  <button class="sound-btn active" id="sortTimeBtn">⏱ Sort: Time</button>
+  <button class="sound-btn" id="sortNameBtn">📋 Sort: Name</button>
+</div>
+<div id="app"></div>
+<div id="bottomBar">
+  <div class="bottom-side bottom-left">
+    <span class="bottom-label" id="nrLabel">⏰ Next:</span>
+    <span class="bottom-location" id="nrLocation">—</span>
+    <span class="bottom-time" id="nrTime">--:--:--</span>
+  </div>
+  <div class="bottom-side bottom-right">
+    <span class="bottom-label" id="rrLabel">🔴 Soon red:</span>
+    <span class="bottom-location" id="rrLocation">—</span>
+    <span class="bottom-time" id="rrTime">--:--:--</span>
+  </div>
+</div>
+<div id="undoBar">
+  <span>⏱ Marked: <b id="undoLabel"></b></span>
+  <span id="undoTimer">5</span>
+  <button id="undoBtn">UNDO</button>
+</div>
+<div id="confirmModal">
+  <div id="confirmBox">
+    <h3>Timer options</h3>
+    <p id="confirmText">Choose an action.</p>
+    <div class="actions">
+      <button id="confirmNo">Cancel</button>
+      <button id="confirmYes">Reset</button>
+      <button id="confirmSet">Set time</button>
+    </div>
+  </div>
+</div>
+<div id="timeModal">
+  <div id="timeBox">
+    <h3>Enter time (HH:MM)</h3>
+    <p id="timeText">Time of kill.</p>
+    <input type="time" id="timeInput" />
+    <div class="actions">
+      <button id="timeCancel">Cancel</button>
+      <button id="timeSave">Save</button>
+    </div>
+  </div>
+</div><script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCvaSbOF5T2BrGjYCVpyOBTFaHKzWWea3nc",
+  authDomain: "ymir-tortik.firebaseapp.com",
+  databaseURL: "https://ymir-tortik-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ymir-tortik",
+  storageBucket: "ymir-tortik.firebasestorage.app",
+  messagingSenderId: "1072703855769",
+  appId: "1:1072703855769:web:74c36249a0f28c0c196c08"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const killRef = ref(db, 'kills');
+
+const LOCATIONS = [
+  { ua: "F2",  en: "Ущелье Мирового дерева эт.2", topLabel: "F2",  channels: ["1","2"] },
+  { ua: "F3",  en: "Ущелье Мирового дерева эт.3", topLabel: "F3",  channels: ["1","2"] },
+  { ua: "F4",  en: "Ущелье Мирового дерева эт.4", topLabel: "F4",  channels: ["1","2"] },
+  { ua: "Myrkheim", en: "Myrkheim",              topLabel: "Myrkheim", channels: ["1","2","3"] },
+  { ua: "Lynd", en: "Пещера Линдвормов",         topLabel: "Lynd", channels: ["1","2","3"] },
+  { ua: "King's Tomb", en: "Гробница короля",    topLabel: "King's Tomb", channels: ["1","2","3"] },
+  { ua: "Twisted Wasteland", en: "Искореженый пустырь", topLabel: "Пустырь", channels: ["1"] }
+];
+
+const SECRET_LOCATION = {
+  ua: "Folkvang",
+  en: "Folkvang",
+  topLabel: "Folkvang",
+  channels: ["1","2","3","4","5","6"],
+  fixedRespawnMs: 8 * 60 * 60 * 1000
+};
+
+const urlParams = new URLSearchParams(window.location.search);
+const SHOW_SECRET = urlParams.get("secret") === "228";
+
+const MIN_RESPAWN = 3 * 60 * 60 * 1000;
+const MAX_RESPAWN = 4 * 60 * 60 * 1000;
+
+let sortMode = localStorage.getItem("sortMode") || "time";
+
+let state = {};
+const appDiv = document.getElementById("app");
+const statusDiv = document.getElementById("status");
+const undoBar = document.getElementById("undoBar");
+const undoLabel = document.getElementById("undoLabel");
+const undoTimerEl = document.getElementById("undoTimer");
+const undoBtn = document.getElementById("undoBtn");
+const confirmModal = document.getElementById("confirmModal");
+const confirmText = document.getElementById("confirmText");
+const confirmYes = document.getElementById("confirmYes");
+const confirmNo = document.getElementById("confirmNo");
+const confirmSet = document.getElementById("confirmSet");
+const testSound = document.getElementById("testSound");
+const gongToggle = document.getElementById("gongToggle");
+const sirenToggle = document.getElementById("sirenToggle");
+const sortTimeBtn = document.getElementById("sortTimeBtn");
+const sortNameBtn = document.getElementById("sortNameBtn");
+
+const timeModal = document.getElementById("timeModal");
+const timeText = document.getElementById("timeText");
+const timeInput = document.getElementById("timeInput");
+const timeCancel = document.getElementById("timeCancel");
+const timeSave = document.getElementById("timeSave");
+
+const activeList = document.getElementById("activeList");
+const waiting1List = document.getElementById("waiting1List");
+const waiting2List = document.getElementById("waiting2List");
+
+const activeCount = document.getElementById("activeCount");
+const waiting1Count = document.getElementById("waiting1Count");
+const waiting2Count = document.getElementById("waiting2Count");
+
+const copyActiveBtn = document.getElementById("copyActiveBtn");
+const copyYellowBtn = document.getElementById("copyYellowBtn");
+const copyWaiting1Btn = document.getElementById("copyWaiting1Btn");
+const copyWaiting2Btn = document.getElementById("copyWaiting2Btn");
+
+const bottomBar = document.getElementById("bottomBar");
+const bottomLeft = bottomBar.querySelector(".bottom-left");
+const bottomRight = bottomBar.querySelector(".bottom-right");
+const nrLabel = document.getElementById("nrLabel");
+const nrLocation = document.getElementById("nrLocation");
+const nrTime = document.getElementById("nrTime");
+const rrLabel = document.getElementById("rrLabel");
+const rrLocation = document.getElementById("rrLocation");
+const rrTime = document.getElementById("rrTime");
+
+let undoTarget = null;
+let undoTimer = null;
+let undoSecondsLeft = 0;
+let confirmTarget = null;
+let confirmLabel = "";
+
+let activeTimers = [];
+let waiting1Timers = [];
+let waiting2Timers = [];
+
+// ============ ЗВУКИ ============
+let audioCtx = null;
+let gongEnabled = localStorage.getItem("gongEnabled") !== "false";
+let sirenEnabled = localStorage.getItem("sirenEnabled") !== "false";
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function tone(freq, duration, type = "sine", volume = 0.15, delay = 0, freqEnd = null) {
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t0 + duration);
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(volume, t0 + 0.015);
+  gain.gain.setValueAtTime(volume, t0 + duration * 0.7);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.05);
+}
+
+function soundGong() {
+  if (!gongEnabled) return;
+  initAudio();
+  const baseTime = 0;
+  tone(180, 0.6, "sine", 0.35, baseTime, 80);
+  tone(200, 2.8, "sine", 0.28, baseTime);
+  tone(207, 2.8, "sine", 0.22, baseTime);
+  tone(400, 2.4, "sine", 0.18, baseTime + 0.005);
+  tone(407, 2.4, "sine", 0.14, baseTime + 0.005);
+  tone(520, 1.8, "sine", 0.10, baseTime + 0.01);
+  tone(680, 1.4, "sine", 0.08, baseTime + 0.01);
+  tone(820, 1.0, "sine", 0.06, baseTime + 0.015);
+  tone(1080, 0.7, "sine", 0.05, baseTime + 0.02);
+  if (!audioCtx) return;
+  const bufSize = audioCtx.sampleRate * 0.05;
+  const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 3);
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 2000;
+  src.connect(filter);
+  filter.connect(g);
+  g.connect(audioCtx.destination);
+  src.start();
+}
+
+function soundSiren() {
+  if (!sirenEnabled) return;
+  initAudio();
+  for (let i = 0; i < 3; i++) {
+    const offset = i * 0.9;
+    tone(700, 0.9, "sawtooth", 0.22, offset, 1400);
+    tone(1400, 0.9, "sawtooth", 0.22, offset + 0.45, 700);
+  }
+  tone(1000, 0.6, "square", 0.18, 2.7);
+}
+
+let prevStatus = {};
+
+// ============ ПОБУДОВА ============
+let lastOrderKey = "";
+
+function build() {
+  const now = Date.now();
+  const allLocations = SHOW_SECRET
+    ? [...LOCATIONS, { ...SECRET_LOCATION, isSecret: true }]
+    : [...LOCATIONS];
+
+  const orderScores = allLocations.map(loc => {
+    let category = 3;
+    let subPriority = 0;
+    let anyTimer = false;
+
+    loc.channels.forEach(c => {
+      const key = loc.ua + "|" + c;
+      const t = state[encodeKey(key)];
+      if (!t) return;
+      anyTimer = true;
+      const elapsed = now - t;
+
+      if (loc.isSecret) {
+        if (elapsed < loc.fixedRespawnMs) {
+          const toRed = loc.fixedRespawnMs - elapsed;
+          if (category > 2) { category = 2; subPriority = toRed; }
+          else if (category === 2) subPriority = Math.min(subPriority, toRed);
+        } else {
+          const overdue = elapsed - loc.fixedRespawnMs;
+          if (category > 0) { category = 0; subPriority = overdue; }
+          else if (category === 0) subPriority = Math.max(subPriority, overdue);
+        }
+        return;
+      }
+
+      if (elapsed >= MAX_RESPAWN) {
+        const overdue = elapsed - MAX_RESPAWN;
+        if (category > 0) { category = 0; subPriority = overdue; }
+        else if (category === 0) subPriority = Math.max(subPriority, overdue);
+      } else if (elapsed >= MIN_RESPAWN) {
+        const remaining = MAX_RESPAWN - elapsed;
+        if (category > 1) { category = 1; subPriority = remaining; }
+        else if (category === 1) subPriority = Math.min(subPriority, remaining);
+      } else {
+        const toYellow = MIN_RESPAWN - elapsed;
+        if (category > 2) { category = 2; subPriority = toYellow; }
+        else if (category === 2) subPriority = Math.min(subPriority, toYellow);
+      }
+    });
+
+    const isEmpty = !anyTimer;
+    if (isEmpty) category = 3;
+    return { loc, category, subPriority, isEmpty };
+  });
+
+  orderScores.sort((a, b) => {
+    if (a.loc.isSecret !== b.loc.isSecret) return a.loc.isSecret ? 1 : -1;
+    if (sortMode === "name") {
+      if (a.isEmpty !== b.isEmpty) return a.isEmpty ? 1 : -1;
+      return a.loc.ua.localeCompare(b.loc.ua, "uk");
+    }
+    if (a.category !== b.category) return a.category - b.category;
+    if (a.category === 0) return b.subPriority - a.subPriority;
+    return a.subPriority - b.subPriority;
+  });
+
+  const newOrderKey = orderScores.map(o => o.loc.ua).join("|") + "|" + sortMode;
+  if (newOrderKey === lastOrderKey && appDiv.children.length === allLocations.length) {
+    return;
+  }
+  lastOrderKey = newOrderKey;
+
+  appDiv.innerHTML = "";
+  orderScores.forEach(({ loc }) => {
+    const div = document.createElement("div");
+    div.className = "loc" + (loc.isSecret ? " secret" : "");
+    div.dataset.loc = loc.ua;
+
+    const h2 = document.createElement("h2");
+    if (loc.isSecret) {
+      h2.innerHTML = `🔒 ${loc.ua}`;
+    } else if (loc.en && loc.en !== loc.ua) {
+      h2.innerHTML = `${loc.ua} <span class="en">(${loc.en})</span>`;
+    } else {
+      h2.innerHTML = `${loc.ua}`;
+    }
+    div.appendChild(h2);
+
+    const ch = document.createElement("div");
+    ch.className = "channels";
+
+    loc.channels.forEach(c => {
+      const key = loc.ua + "|" + c;
+      const btn = document.createElement("button");
+      btn.className = "btn";
+      btn.dataset.key = key;
+      btn.dataset.secret = loc.isSecret ? "1" : "0";
+
+      btn.onclick = () => {
+        initAudio();
+        const ok = confirm(`Kill boss in "${loc.ua} ${c}"?`);
+        if (!ok) return;
+        set(ref(db, 'kills/' + encodeKey(key)), Date.now())
+          .then(() => showUndo(key, loc.ua + " " + c))
+          .catch(e => alert("Помилка запису: " + e.message));
+      };
+
+      btn.oncontextmenu = (e) => {
+        e.preventDefault();
+        askConfirm(key, loc.ua + " " + c);
+      };
+
+      btn.innerHTML = `<span>${c}</span><span class="timer">—</span>`;
+      ch.appendChild(btn);
+    });
+
+    div.appendChild(ch);
+    appDiv.appendChild(div);
+  });
+}
+
+function encodeKey(key) {
+  return key
+    .replace(/\|/g, '_')
+    .replace(/\./g, '-')
+    .replace(/#/g, '_')
+    .replace(/\$/g, '_')
+    .replace(/\[/g, '_')
+    .replace(/\]/g, '_');
+}
+
+function topLabelFor(locUa) {
+  const loc = LOCATIONS.find(l => l.ua === locUa);
+  if (loc) return loc.topLabel || loc.ua;
+  if (locUa === SECRET_LOCATION.ua) return SECRET_LOCATION.topLabel;
+  return locUa;
+}
+
+// ============ СКАТИ ============
+function showUndo(key, label) {
+  if (undoTimer) clearInterval(undoTimer);
+  undoTarget = key;
+  undoLabel.textContent = label;
+  undoSecondsLeft = 5;
+  undoTimerEl.textContent = undoSecondsLeft;
+  undoBar.classList.add("show");
+  undoTimer = setInterval(() => {
+    undoSecondsLeft--;
+    undoTimerEl.textContent = undoSecondsLeft;
+    if (undoSecondsLeft <= 0) hideUndo();
+  }, 1000);
+}
+
+function hideUndo() {
+  if (undoTimer) clearInterval(undoTimer);
+  undoTimer = null;
+  undoTarget = null;
+  undoBar.classList.remove("show");
+}
+
+undoBtn.onclick = () => {
+  if (!undoTarget) return;
+  const key = undoTarget;
+  remove(ref(db, 'kills/' + encodeKey(key)))
+    .then(() => hideUndo())
+    .catch(e => alert("Помилка скасування: " + e.message));
+};
+
+// ============ ВІКНО ОПЦІЙ ============
+function askConfirm(key, label) {
+  confirmTarget = key;
+  confirmLabel = label;
+  confirmText.textContent = `Location: ${label}`;
+  confirmModal.classList.add("show");
+}
+
+function hideConfirm() {
+  confirmTarget = null;
+  confirmLabel = "";
+  confirmModal.classList.remove("show");
+}
+
+confirmYes.onclick = () => {
+  if (!confirmTarget) return;
+  remove(ref(db, 'kills/' + encodeKey(confirmTarget)))
+    .then(() => hideConfirm())
+    .catch(e => alert("Помилка скидання: " + e.message));
+};
+
+confirmNo.onclick = () => hideConfirm();
+
+confirmModal.onclick = (e) => {
+  if (e.target === confirmModal) hideConfirm();
+};
+
+confirmSet.onclick = () => {
+  if (!confirmTarget) return;
+  const savedKey = confirmTarget;
+  const savedLabel = confirmLabel;
+  hideConfirm();
+  timeText.textContent = savedLabel;
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  timeInput.value = `${hh}:${mm}`;
+  timeModal.classList.add("show");
+  timeModal.dataset.targetKey = savedKey;
+  setTimeout(() => timeInput.focus(), 50);
+};
+
+timeCancel.onclick = () => {
+  timeModal.classList.remove("show");
+};
+
+timeModal.onclick = (e) => {
+  if (e.target === timeModal) timeModal.classList.remove("show");
+};
+
+timeSave.onclick = () => {
+  const val = timeInput.value;
+  if (!val || !/^\d{2}:\d{2}$/.test(val)) {
+    alert("Введи час у форматі HH:MM");
+    return;
+  }
+  const [hh, mm] = val.split(":").map(Number);
+  if (hh > 23 || mm > 59) { alert("Некоректний час"); return; }
+  const targetKey = timeModal.dataset.targetKey;
+  if (!targetKey) return;
+  const now = new Date();
+  const target = new Date();
+  target.setHours(hh, mm, 0, 0);
+  if (target.getTime() > now.getTime()) target.setDate(target.getDate() - 1);
+  const ts = target.getTime();
+  set(ref(db, 'kills/' + encodeKey(targetKey)), ts)
+    .then(() => {
+      timeModal.classList.remove("show");
+      timeModal.dataset.targetKey = "";
+    })
+    .catch(e => alert("Помилка запису: " + e.message));
+};
+
+timeInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") timeSave.click();
+});// ============ КНОПКИ СОРТУВАННЯ ============
+function updateSortButtons() {
+  if (sortMode === "time") {
+    sortTimeBtn.classList.add("active");
+    sortNameBtn.classList.remove("active");
+  } else {
+    sortTimeBtn.classList.remove("active");
+    sortNameBtn.classList.add("active");
+  }
+}
+updateSortButtons();
+
+sortTimeBtn.onclick = () => {
+  if (sortMode === "time") return;
+  sortMode = "time";
+  localStorage.setItem("sortMode", sortMode);
+  lastOrderKey = "";
+  updateSortButtons();
+  build();
+};
+
+sortNameBtn.onclick = () => {
+  if (sortMode === "name") return;
+  sortMode = "name";
+  localStorage.setItem("sortMode", sortMode);
+  lastOrderKey = "";
+  updateSortButtons();
+  build();
+};
+
+// ============ ЗВУК КНОПКИ ============
+function updateGongButton() {
+  if (gongEnabled) {
+    gongToggle.textContent = "🔔 Gong: ON";
+    gongToggle.classList.remove("muted");
+  } else {
+    gongToggle.textContent = "🔕 Gong: OFF";
+    gongToggle.classList.add("muted");
+  }
+}
+
+function updateSirenButton() {
+  if (sirenEnabled) {
+    sirenToggle.textContent = "🚨 Siren: ON";
+    sirenToggle.classList.remove("muted");
+  } else {
+    sirenToggle.textContent = "🔇 Siren: OFF";
+    sirenToggle.classList.add("muted");
+  }
+}
+
+updateGongButton();
+updateSirenButton();
+
+gongToggle.onclick = () => {
+  gongEnabled = !gongEnabled;
+  localStorage.setItem("gongEnabled", gongEnabled);
+  updateGongButton();
+  if (gongEnabled) { initAudio(); soundGong(); }
+};
+
+sirenToggle.onclick = () => {
+  sirenEnabled = !sirenEnabled;
+  localStorage.setItem("sirenEnabled", sirenEnabled);
+  updateSirenButton();
+  if (sirenEnabled) { initAudio(); soundSiren(); }
+};
+
+testSound.onclick = () => {
+  initAudio();
+  if (gongEnabled) soundGong();
+  setTimeout(() => { if (sirenEnabled) soundSiren(); }, 3000);
+};
+
+// ============ КОПІЮВАННЯ ============
+async function copyToClipboard(text, btn, defaultText) {
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = "✓ Copied!";
+    btn.classList.add("copied");
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      btn.textContent = "✓ Copied!";
+      btn.classList.add("copied");
+    } catch (err) {
+      btn.textContent = "✗ Error";
+    }
+    document.body.removeChild(ta);
+  }
+  setTimeout(() => {
+    btn.textContent = defaultText;
+    btn.classList.remove("copied");
+  }, 1500);
+}
+
+function flashEmpty(btn, defaultText) {
+  btn.textContent = "✗ None";
+  btn.classList.add("copied");
+  setTimeout(() => {
+    btn.textContent = defaultText;
+    btn.classList.remove("copied");
+  }, 1500);
+}
+
+copyActiveBtn.onclick = () => {
+  if (activeTimers.length === 0) { flashEmpty(copyActiveBtn, "📄 Copy"); return; }
+  const text = activeTimers.map(item => item.label + " " + item.copyTime).join("\n");
+  copyToClipboard(text, copyActiveBtn, "📄 Copy");
+};
+
+copyYellowBtn.onclick = () => {
+  const yellows = activeTimers.filter(item => item.status === "spawn");
+  if (yellows.length === 0) { flashEmpty(copyYellowBtn, "🟡 Yellow"); return; }
+  const text = yellows.map(item => item.label + " ").join("\n");
+  copyToClipboard(text, copyYellowBtn, "🟡 Yellow");
+};
+
+copyWaiting1Btn.onclick = () => {
+  if (waiting1Timers.length === 0) { flashEmpty(copyWaiting1Btn, "📄 Copy"); return; }
+  const text = waiting1Timers.map(item => item.label + " " + item.copyTime).join("\n");
+  copyToClipboard(text, copyWaiting1Btn, "📄 Copy");
+};
+
+copyWaiting2Btn.onclick = () => {
+  if (waiting2Timers.length === 0) { flashEmpty(copyWaiting2Btn, "📄 Copy"); return; }
+  const text = waiting2Timers.map(item => item.label + " " + item.copyTime).join("\n");
+  copyToClipboard(text, copyWaiting2Btn, "📄 Copy");
+};
+
+// ============ КЛІК ПО РЯДКУ В ТОПІ ============
+document.addEventListener("click", async (e) => {
+  const li = e.target.closest("#activeList li, #waiting1List li, #waiting2List li");
+  if (!li || li.classList.contains("empty")) return;
+
+  const listName = li.dataset.list;
+  const idx = parseInt(li.dataset.idx);
+  let arr;
+  if (listName === "active") arr = activeTimers;
+  else if (listName === "wait1") arr = waiting1Timers;
+  else if (listName === "wait2") arr = waiting2Timers;
+  if (!arr || !arr[idx]) return;
+
+  const item = arr[idx];
+  const text = `${item.label} ${item.copyTime}`;
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (err) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch(e2){}
+    document.body.removeChild(ta);
+  }
+
+  li.classList.add("copied-row");
+  setTimeout(() => li.classList.remove("copied-row"), 600);
+});
+
+// ============ FIREBASE KILLS ============
+onValue(killRef, (snapshot) => {
+  state = snapshot.val() || {};
+  statusDiv.textContent = "🟢 Online — synced with clan";
+  render();
+}, (error) => {
+  statusDiv.textContent = "🔴 Connection error: " + error.message;
+});
+
+// ============ ЧАС ============
+function fmt(ms) {
+  if (ms < 0) ms = 0;
+  const s = Math.floor(ms/1000);
+  const h = String(Math.floor(s/3600)).padStart(2,"0");
+  const m = String(Math.floor((s%3600)/60)).padStart(2,"0");
+  const sec = String(s%60).padStart(2,"0");
+  return `${h}:${m}:${sec}`;
+}
+
+function fmtClock(timestamp) {
+  const d = new Date(timestamp);
+  const h = String(d.getHours()).padStart(2,"0");
+  const m = String(d.getMinutes()).padStart(2,"0");
+  return `${h}:${m}`;
+}
+
+function fmtClockUTC4(timestamp) {
+  const d = new Date(timestamp);
+  let h = d.getUTCHours() - 4;
+  const m = d.getUTCMinutes();
+  if (h < 0) h += 24;
+  if (h >= 24) h -= 24;
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+}
+
+// ============ RENDER ============
+function render() {
+  build();
+
+  const now = Date.now();
+  const active = [];
+  const waiting = [];
+  const allForNext = [];
+
+  document.querySelectorAll(".btn").forEach(btn => {
+    const key = btn.dataset.key;
+    const isSecret = btn.dataset.secret === "1";
+    const fbKey = encodeKey(key);
+    const t = state[fbKey];
+    const timerEl = btn.querySelector(".timer");
+    btn.classList.remove("alive","spawn","done");
+
+    if (!t) {
+      timerEl.textContent = "—";
+      prevStatus[fbKey] = undefined;
+      return;
+    }
+
+    const elapsed = now - t;
+    let currentStatus;
+
+    if (isSecret) {
+      if (elapsed < SECRET_LOCATION.fixedRespawnMs) {
+        btn.classList.add("alive");
+        timerEl.textContent = fmt(SECRET_LOCATION.fixedRespawnMs - elapsed);
+        currentStatus = "alive";
+      } else {
+        btn.classList.add("done");
+        timerEl.textContent = "already!";
+        currentStatus = "done";
+      }
+      const prev = prevStatus[fbKey];
+      if (prev === "alive" && currentStatus === "done") {
+        soundSiren();
+      }
+      prevStatus[fbKey] = currentStatus;
+      return;
+    }
+
+    if (elapsed < MIN_RESPAWN) {
+      btn.classList.add("alive");
+      timerEl.textContent = fmt(MIN_RESPAWN - elapsed);
+      currentStatus = "alive";
+    } else if (elapsed < MAX_RESPAWN) {
+      btn.classList.add("spawn");
+      timerEl.textContent = "РЕСП! " + fmt(MAX_RESPAWN - elapsed);
+      currentStatus = "spawn";
+    } else {
+      btn.classList.add("done");
+      timerEl.textContent = "already!";
+      currentStatus = "done";
+    }
+
+    const minRespawnTime = t + MIN_RESPAWN;
+    const maxRespawnTime = t + MAX_RESPAWN;
+
+    let sortPriority;
+    if (currentStatus === "done") {
+      sortPriority = -1000000 + elapsed;
+    } else if (currentStatus === "spawn") {
+      sortPriority = -100000 + (MAX_RESPAWN - elapsed);
+    } else {
+      sortPriority = MIN_RESPAWN - elapsed;
+    }
+
+    const localRange = `${fmtClock(minRespawnTime)}-${fmtClock(maxRespawnTime)}`;
+    const utcRange = `${fmtClockUTC4(minRespawnTime)}-${fmtClockUTC4(maxRespawnTime)}`;
+    const utcSuffix = `(${utcRange} UTC-4)`;
+
+    let timeText;
+    let copyTime;
+
+    if (currentStatus === "done") {
+      timeText = `<span style="color:#e53935">already!</span>`;
+      copyTime = `already!`;
+    } else {
+      timeText = `${localRange} <span class="utc">${utcSuffix}</span>`;
+      copyTime = `${localRange} ${utcSuffix}`;
+    }
+
+    const locUa = key.split("|")[0];
+    const chName = key.split("|")[1];
+    const shortLoc = topLabelFor(locUa);
+    const label = `${shortLoc} ${chName}`;
+
+    const item = { fbKey, label, sortPriority, timeText, copyTime, status: currentStatus };
+
+    if (currentStatus === "spawn" || currentStatus === "done") {
+      active.push(item);
+    } else {
+      waiting.push(item);
+    }
+
+    let msToEvent;
+    if (currentStatus === "alive") {
+      msToEvent = MIN_RESPAWN - elapsed;
+    } else {
+      msToEvent = null;
+    }
+    if (msToEvent !== null) {
+      allForNext.push({ label, msToEvent, status: currentStatus });
+    }
+
+    const prev = prevStatus[fbKey];
+    if (prev === "alive" && currentStatus === "spawn") {
+      soundGong();
+    } else if (prev === "spawn" && currentStatus === "done") {
+      soundSiren();
+    }
+    prevStatus[fbKey] = currentStatus;
+  });
+
+  active.sort((a, b) => a.sortPriority - b.sortPriority);
+  waiting.sort((a, b) => a.sortPriority - b.sortPriority);
+
+  const wait1 = waiting.slice(0, 3);
+  const wait2 = waiting.slice(3, 6);
+
+  activeTimers = active;
+  waiting1Timers = wait1;
+  waiting2Timers = wait2;
+
+  activeCount.textContent = active.length;
+  waiting1Count.textContent = wait1.length;
+  waiting2Count.textContent = wait2.length;
+
+  if (active.length === 0) {
+    activeList.innerHTML = '<li class="empty">None</li>';
+  } else {
+    activeList.innerHTML = active.map((item, i) => {
+      const statusEmoji = item.status === "spawn" ? "🟡" : "🔴";
+      return `<li data-list="active" data-idx="${i}"><span class="loc-name">${statusEmoji} ${item.label}</span><span class="loc-time ${item.status}">${item.timeText}</span></li>`;
+    }).join("");
+  }
+
+  if (wait1.length === 0) {
+    waiting1List.innerHTML = '<li class="empty">None</li>';
+  } else {
+    waiting1List.innerHTML = wait1.map((item, i) =>
+      `<li data-list="wait1" data-idx="${i}"><span class="loc-name">🟢 ${item.label}</span><span class="loc-time alive">${item.timeText}</span></li>`
+    ).join("");
+  }
+
+  if (wait2.length === 0) {
+    waiting2List.innerHTML = '<li class="empty">None</li>';
+  } else {
+    waiting2List.innerHTML = wait2.map((item, i) =>
+      `<li data-list="wait2" data-idx="${i}"><span class="loc-name">🟢 ${item.label}</span><span class="loc-time alive">${item.timeText}</span></li>`
+    ).join("");
+  }
+
+  copyActiveBtn.classList.toggle("empty", active.length === 0);
+  copyWaiting1Btn.classList.toggle("empty", wait1.length === 0);
+  copyWaiting2Btn.classList.toggle("empty", wait2.length === 0);
+
+  updateNextRespawn(allForNext);
+  updateSoonRed();
+}
+
+// ============ NEXT RESPAWN ============
+function updateNextRespawn(list) {
+  bottomLeft.classList.remove("spawn", "done");
+
+  if (list.length === 0) {
+    nrLabel.textContent = "⏰ Next:";
+    nrLocation.textContent = "—";
+    nrTime.textContent = "--:--:--";
+    return;
+  }
+
+  list.sort((a, b) => a.msToEvent - b.msToEvent);
+  const next = list[0];
+
+  nrLabel.textContent = "⏰ Next:";
+  nrLocation.textContent = next.label;
+  nrTime.textContent = fmt(next.msToEvent);
+}
+
+// ============ SOON RED ============
+function updateSoonRed() {
+  const now = Date.now();
+  const soon = [];
+
+  document.querySelectorAll(".btn").forEach(btn => {
+    const key = btn.dataset.key;
+    const isSecret = btn.dataset.secret === "1";
+    const fbKey = encodeKey(key);
+    const t = state[fbKey];
+    if (!t) return;
+
+    const elapsed = now - t;
+    const locUa = key.split("|")[0];
+    const chName = key.split("|")[1];
+    const shortLoc = topLabelFor(locUa);
+
+    if (isSecret) {
+      if (elapsed < SECRET_LOCATION.fixedRespawnMs) {
+        const msToRed = SECRET_LOCATION.fixedRespawnMs - elapsed;
+        soon.push({ label: `${shortLoc} ${chName}`, msToRed });
+      }
+    } else {
+      if (elapsed < MAX_RESPAWN) {
+        const msToRed = MAX_RESPAWN - elapsed;
+        soon.push({ label: `${shortLoc} ${chName}`, msToRed });
+      }
+    }
+  });
+
+  if (soon.length === 0) {
+    rrLabel.textContent = "🔴 Soon red:";
+    rrLocation.textContent = "—";
+    rrTime.textContent = "--:--:--";
+    bottomRight.classList.add("empty");
+    return;
+  }
+
+  bottomRight.classList.remove("empty");
+  soon.sort((a, b) => a.msToRed - b.msToRed);
+  const next = soon[0];
+
+  rrLabel.textContent = "🔴 Soon red:";
+  rrLocation.textContent = next.label;
+  rrTime.textContent = fmt(next.msToRed);
+}
+
+// ============ СТАРТ ============
+build();
+setInterval(render, 1000);
+</script>
+</body>
+</html>
