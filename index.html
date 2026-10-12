@@ -8,6 +8,9 @@
   body { background:#1e1e2e; color:#eee; font-family:sans-serif; padding:10px; margin:0; padding-bottom:80px; }
   h1 { font-size:18px; text-align:center; margin-bottom:6px; }
   .status { text-align:center; font-size:12px; opacity:0.7; margin-bottom:8px; }
+  .lock-banner { text-align:center; font-size:13px; padding:8px; margin-bottom:8px; border-radius:6px; display:none; }
+  .lock-banner.show { display:block; }
+  .lock-banner.off { background:#3a1a1a; color:#ff9999; border:1px solid #c62828; }
   .tops-row { display:grid; grid-template-columns: 1fr 1.6fr; gap:8px; margin-bottom:10px; }
   @media (max-width: 700px) { .tops-row { grid-template-columns: 1fr; } }
   .waiting-wrap { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
@@ -48,6 +51,12 @@
   .sound-btn:hover { background:#3a3a4c; }
   .sound-btn.muted { opacity:0.5; }
   .sound-btn.active { background:#1565c0; border-color:#1976d2; }
+  .edit-btn-on { background:#2e7d32; border-color:#388e3c; color:#fff; }
+  .edit-btn-on:hover { background:#388e3c; }
+  .edit-btn-off { background:#c62828; border-color:#e53935; color:#fff; }
+  .edit-btn-off:hover { background:#e53935; }
+  .history-btn { background:#6a1b9a; border-color:#7b1fa2; color:#fff; }
+  .history-btn:hover { background:#7b1fa2; }
   .loc { margin-bottom:8px; padding:8px; background:#2a2a3c; border-radius:8px; transition: opacity 0.3s; }
   .loc h2 { font-size:13px; margin:0 0 6px; line-height:1.3; }
   .loc h2 .en { font-size:11px; opacity:0.6; font-weight:normal; }
@@ -56,10 +65,11 @@
   .btn.alive { background:#2e7d32; }
   .btn.spawn { background:#f9a825; color:#000; animation: pulse 1.5s infinite; }
   .btn.done  { background:#e53935; color:#fff; animation: pulseRed 1.5s infinite; }
+  .btn.locked { opacity:0.4; cursor:not-allowed; }
+  .btn.locked:hover { box-shadow:none; }
   @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(249,168,37,0.7); } 50% { box-shadow: 0 0 0 8px rgba(249,168,37,0); } }
   @keyframes pulseRed { 0%, 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0.7); } 50% { box-shadow: 0 0 0 8px rgba(229,57,53,0); } }
-  .timer { font-size:11px; opacity:0.9; }
-  #bottomBar { position:fixed; bottom:0; left:0; right:0; display:flex; background:#12121c; border-top:2px solid #444; box-shadow:0 -4px 20px rgba(0,0,0,0.7); z-index:90; flex-wrap:wrap; }
+  .timer { font-size:11px; opacity:0.9; }  #bottomBar { position:fixed; bottom:0; left:0; right:0; display:flex; background:#12121c; border-top:2px solid #444; box-shadow:0 -4px 20px rgba(0,0,0,0.7); z-index:90; flex-wrap:wrap; }
   .bottom-side { flex:1; padding:10px 14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-width:0; }
   .bottom-left { border-right:2px solid #444; border-top:2px solid transparent; }
   .bottom-left.spawn { border-top-color:#f9a825; background:#1c1a10; }
@@ -105,6 +115,26 @@
   #timeCancel:hover { background:#666; }
   #timeSave { background:#2e7d32; color:#fff; }
   #timeSave:hover { background:#388e3c; }
+  #historyModal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:center; z-index:220; }
+  #historyModal.show { display:flex; }
+  #historyBox { background:#2a2a3c; padding:16px; border-radius:12px; max-width:560px; width:94%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.6); }
+  #historyBox h3 { margin:0 0 10px; font-size:16px; color:#fff; display:flex; justify-content:space-between; align-items:center; }
+  #historyBox h3 button { background:#555; color:#fff; border:none; border-radius:6px; padding:4px 12px; font-size:12px; cursor:pointer; }
+  #historyBox h3 button:hover { background:#666; }
+  #historyList { overflow-y:auto; flex:1; padding-right:6px; }
+  .hist-item { padding:8px; background:#1e1e2e; border-radius:6px; margin-bottom:6px; font-size:12px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .hist-item.hist-admin { background:#1a1030; border-left:3px solid #7b1fa2; }
+  .hist-item.hist-member { background:#1e1e2e; border-left:3px solid #444; }
+  .hist-item.hist-admin .hist-key { color:#d0a0ff; }
+  .hist-item.hist-member .hist-key { color:#aaa; }
+  .hist-item .hist-info { flex:1; }
+  .hist-item .hist-key { font-weight:bold; }
+  .hist-item .hist-times { font-family:monospace; color:#eee; }
+  .hist-item .hist-when { color:#888; font-size:11px; margin-top:2px; }
+  .hist-item .hist-restored { color:#f9a825; font-style:italic; }
+  .hist-restore-btn { background:#1565c0; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer; font-weight:bold; white-space:nowrap; }
+  .hist-restore-btn:hover { background:#1976d2; }
+  .hist-empty { text-align:center; padding:20px; opacity:0.5; font-style:italic; }
   #app .loc.secret { border:1px dashed #7a4a00; background:#1e1a2e; margin-top:16px; }
   #app .loc.secret h2 { color:#d0a0ff; }
 </style>
@@ -112,6 +142,7 @@
 <body>
 <h1>🔥 Cake (Ymir)</h1>
 <div class="status" id="status">Підключення до Firebase...</div>
+<div class="lock-banner off" id="lockBanner">🔒 Editing is disabled by admin</div>
 <div class="tops-row">
   <div class="top-box active">
     <h2><span>🟡🔴 Active spawns <span class="count" id="activeCount">0</span></span></h2>
@@ -147,6 +178,10 @@
 <div class="sound-bar">
   <button class="sound-btn active" id="sortTimeBtn">⏱ Sort: Time</button>
   <button class="sound-btn" id="sortNameBtn">📋 Sort: Name</button>
+</div>
+<div class="sound-bar" id="adminBar" style="display:none;">
+  <button class="sound-btn edit-btn-on" id="editToggleBtn">🔓 Edit: ON</button>
+  <button class="sound-btn history-btn" id="historyBtn">📜 History</button>
 </div>
 <div id="app"></div>
 <div id="bottomBar">
@@ -187,9 +222,18 @@
       <button id="timeSave">Save</button>
     </div>
   </div>
+</div>
+<div id="historyModal">
+  <div id="historyBox">
+    <h3>
+      <span>📜 Change history</span>
+      <button id="historyCloseBtn">✕ Close</button>
+    </h3>
+    <div id="historyList"><div class="hist-empty">Завантаження...</div></div>
+  </div>
 </div><script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
-import { getDatabase, ref, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
+import { getDatabase, ref, onValue, set, remove, push } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCvaSbOF5T2BrGjYCVpyOBTFaHKzWWea3nc",
@@ -204,6 +248,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const killRef = ref(db, 'kills');
+const editRef = ref(db, 'settings/editEnabled');
+const historyRef = ref(db, 'history');
 
 const LOCATIONS = [
   { ua: "F2",  en: "Ущелье Мирового дерева эт.2", topLabel: "F2",  channels: ["1","2"] },
@@ -230,6 +276,7 @@ const MIN_RESPAWN = 3 * 60 * 60 * 1000;
 const MAX_RESPAWN = 4 * 60 * 60 * 1000;
 
 let sortMode = localStorage.getItem("sortMode") || "time";
+let editEnabled = true;
 
 let state = {};
 const appDiv = document.getElementById("app");
@@ -248,6 +295,13 @@ const gongToggle = document.getElementById("gongToggle");
 const sirenToggle = document.getElementById("sirenToggle");
 const sortTimeBtn = document.getElementById("sortTimeBtn");
 const sortNameBtn = document.getElementById("sortNameBtn");
+const adminBar = document.getElementById("adminBar");
+const editToggleBtn = document.getElementById("editToggleBtn");
+const lockBanner = document.getElementById("lockBanner");
+const historyBtn = document.getElementById("historyBtn");
+const historyModal = document.getElementById("historyModal");
+const historyList = document.getElementById("historyList");
+const historyCloseBtn = document.getElementById("historyCloseBtn");
 
 const timeModal = document.getElementById("timeModal");
 const timeText = document.getElementById("timeText");
@@ -287,6 +341,46 @@ let confirmLabel = "";
 let activeTimers = [];
 let waiting1Timers = [];
 let waiting2Timers = [];
+
+// ============ ІСТОРІЯ ЗМІН ============
+async function logChange(key, oldVal, newVal) {
+  try {
+    const hRef = ref(db, 'history/' + encodeKey(key));
+    await push(hRef, {
+      old: oldVal === null || oldVal === undefined ? null : oldVal,
+      new: newVal === null || newVal === undefined ? null : newVal,
+      when: Date.now(),
+      by: SHOW_SECRET ? "admin" : "member"
+    });
+  } catch (e) {
+    console.warn("history log error:", e.message);
+  }
+}
+
+async function setKill(key, newVal) {
+  const fbKey = encodeKey(key);
+  const oldVal = state[fbKey] === undefined ? null : state[fbKey];
+  await set(ref(db, 'kills/' + fbKey), newVal);
+  await logChange(key, oldVal, newVal);
+}
+
+async function removeKill(key) {
+  const fbKey = encodeKey(key);
+  const oldVal = state[fbKey] === undefined ? null : state[fbKey];
+  await remove(ref(db, 'kills/' + fbKey));
+  await logChange(key, oldVal, null);
+}
+
+async function restoreChange(histKey, oldVal) {
+  const fbKey = encodeKey(histKey);
+  const currentVal = state[fbKey] === undefined ? null : state[fbKey];
+  if (oldVal === null) {
+    await remove(ref(db, 'kills/' + fbKey));
+  } else {
+    await set(ref(db, 'kills/' + fbKey), oldVal);
+  }
+  await logChange(histKey, currentVal, oldVal);
+}
 
 // ============ ЗВУКИ ============
 let audioCtx = null;
@@ -419,10 +513,12 @@ function build() {
 
   orderScores.sort((a, b) => {
     if (a.loc.isSecret !== b.loc.isSecret) return a.loc.isSecret ? 1 : -1;
+
     if (sortMode === "name") {
       if (a.isEmpty !== b.isEmpty) return a.isEmpty ? 1 : -1;
       return a.loc.ua.localeCompare(b.loc.ua, "uk");
     }
+
     if (a.category !== b.category) return a.category - b.category;
     if (a.category === 0) return b.subPriority - a.subPriority;
     return a.subPriority - b.subPriority;
@@ -461,16 +557,18 @@ function build() {
       btn.dataset.secret = loc.isSecret ? "1" : "0";
 
       btn.onclick = () => {
+        if (!editEnabled && !SHOW_SECRET) return;
         initAudio();
         const ok = confirm(`Kill boss in "${loc.ua} ${c}"?`);
         if (!ok) return;
-        set(ref(db, 'kills/' + encodeKey(key)), Date.now())
+        setKill(key, Date.now())
           .then(() => showUndo(key, loc.ua + " " + c))
           .catch(e => alert("Помилка запису: " + e.message));
       };
 
       btn.oncontextmenu = (e) => {
         e.preventDefault();
+        if (!editEnabled && !SHOW_SECRET) return;
         askConfirm(key, loc.ua + " " + c);
       };
 
@@ -525,7 +623,7 @@ function hideUndo() {
 undoBtn.onclick = () => {
   if (!undoTarget) return;
   const key = undoTarget;
-  remove(ref(db, 'kills/' + encodeKey(key)))
+  removeKill(key)
     .then(() => hideUndo())
     .catch(e => alert("Помилка скасування: " + e.message));
 };
@@ -546,7 +644,7 @@ function hideConfirm() {
 
 confirmYes.onclick = () => {
   if (!confirmTarget) return;
-  remove(ref(db, 'kills/' + encodeKey(confirmTarget)))
+  removeKill(confirmTarget)
     .then(() => hideConfirm())
     .catch(e => alert("Помилка скидання: " + e.message));
 };
@@ -595,7 +693,7 @@ timeSave.onclick = () => {
   target.setHours(hh, mm, 0, 0);
   if (target.getTime() > now.getTime()) target.setDate(target.getDate() - 1);
   const ts = target.getTime();
-  set(ref(db, 'kills/' + encodeKey(targetKey)), ts)
+  setKill(targetKey, ts)
     .then(() => {
       timeModal.classList.remove("show");
       timeModal.dataset.targetKey = "";
@@ -605,7 +703,170 @@ timeSave.onclick = () => {
 
 timeInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") timeSave.click();
-});// ============ КНОПКИ СОРТУВАННЯ ============
+});// ============ БЛОКУВАННЯ РЕДАГУВАННЯ ============
+if (SHOW_SECRET) {
+  adminBar.style.display = "flex";
+}
+
+onValue(editRef, (snap) => {
+  const val = snap.val();
+  editEnabled = val === null ? true : !!val;
+  updateEditButton();
+  updateLockBanner();
+  updateButtonsLock();
+  lastOrderKey = "";
+  build();
+}, (err) => {
+  console.warn("editEnabled read error:", err.message);
+});
+
+function updateEditButton() {
+  if (editEnabled) {
+    editToggleBtn.textContent = "🔓 Edit: ON";
+    editToggleBtn.classList.remove("edit-btn-off");
+    editToggleBtn.classList.add("edit-btn-on");
+  } else {
+    editToggleBtn.textContent = "🔒 Edit: OFF";
+    editToggleBtn.classList.remove("edit-btn-on");
+    editToggleBtn.classList.add("edit-btn-off");
+  }
+}
+
+function updateLockBanner() {
+  if (editEnabled || SHOW_SECRET) {
+    lockBanner.classList.remove("show");
+  } else {
+    lockBanner.classList.add("show");
+  }
+}
+
+function updateButtonsLock() {
+  document.querySelectorAll(".btn").forEach(btn => {
+    if (editEnabled || SHOW_SECRET) {
+      btn.classList.remove("locked");
+    } else {
+      btn.classList.add("locked");
+    }
+  });
+}
+
+editToggleBtn.onclick = () => {
+  const newVal = !editEnabled;
+  set(editRef, newVal)
+    .catch(e => alert("Помилка перемикання: " + e.message));
+};
+
+// ============ HISTORY MODAL ============
+let historyData = {};
+
+onValue(historyRef, (snap) => {
+  historyData = snap.val() || {};
+  if (historyModal.classList.contains("show")) {
+    renderHistory();
+  }
+});
+
+historyBtn.onclick = () => {
+  historyModal.classList.add("show");
+  renderHistory();
+};
+
+historyCloseBtn.onclick = () => {
+  historyModal.classList.remove("show");
+};
+
+historyModal.onclick = (e) => {
+  if (e.target === historyModal) historyModal.classList.remove("show");
+};
+
+function renderHistory() {
+  const all = [];
+  for (const [fbKey, entries] of Object.entries(historyData)) {
+    if (!entries || typeof entries !== "object") continue;
+    for (const [pushId, entry] of Object.entries(entries)) {
+      if (!entry || typeof entry !== "object") continue;
+      all.push({
+        fbKey,
+        pushId,
+        old: entry.old,
+        new: entry.new,
+        when: entry.when,
+        by: entry.by
+      });
+    }
+  }
+
+  if (all.length === 0) {
+    historyList.innerHTML = '<div class="hist-empty">Історія порожня</div>';
+    return;
+  }
+
+  all.sort((a, b) => (b.when || 0) - (a.when || 0));
+
+  historyList.innerHTML = all.map(item => {
+    const keyLabel = formatKeyLabel(item.fbKey);
+    const oldTxt = item.old ? fmtClockFull(item.old) : "—";
+    const newTxt = item.new ? fmtClockFull(item.new) : "—";
+    const whenTxt = item.when ? fmtWhen(item.when) : "";
+    const isRestore = item.old !== null && item.new !== null;
+    const isAdmin = item.by === "admin";
+    const cls = isAdmin ? "hist-item hist-admin" : "hist-item hist-member";
+    const whoLabel = isAdmin ? "🛡 admin" : "👤 clan";
+    return `<div class="${cls}">
+      <div class="hist-info">
+        <div class="hist-key">${keyLabel}</div>
+        <div class="hist-times">${oldTxt} <span style="color:#888">→</span> ${newTxt}</div>
+        <div class="hist-when">${whenTxt} • ${whoLabel}${isRestore ? ' <span class="hist-restored">(зміна)</span>' : ''}</div>
+      </div>
+      <button class="hist-restore-btn" data-fbkey="${item.fbKey}" data-old="${item.old || ''}">↩ Restore</button>
+    </div>`;
+  }).join("");
+
+  historyList.querySelectorAll(".hist-restore-btn").forEach(btn => {
+    btn.onclick = async () => {
+      const fbKey = btn.dataset.fbkey;
+      const oldVal = btn.dataset.old === "" ? null : parseInt(btn.dataset.old);
+      const origKey = decodeKey(fbKey);
+      const label = formatKeyLabel(fbKey);
+      if (!confirm(`Відкотити ${label} до ${oldVal ? fmtClockFull(oldVal) : "порожньо"}?`)) return;
+      try {
+        await restoreChange(origKey, oldVal);
+      } catch (e) {
+        alert("Помилка відкату: " + e.message);
+      }
+    };
+  });
+}
+
+function formatKeyLabel(fbKey) {
+  const idx = fbKey.lastIndexOf("_");
+  if (idx === -1) return fbKey;
+  return fbKey.substring(0, idx) + " " + fbKey.substring(idx + 1);
+}
+
+function decodeKey(fbKey) {
+  const idx = fbKey.lastIndexOf("_");
+  if (idx === -1) return fbKey;
+  return fbKey.substring(0, idx) + "|" + fbKey.substring(idx + 1);
+}
+
+function fmtClockFull(ts) {
+  const d = new Date(ts);
+  const h = String(d.getHours()).padStart(2,"0");
+  const m = String(d.getMinutes()).padStart(2,"0");
+  return `${h}:${m}`;
+}
+
+function fmtWhen(ts) {
+  const d = new Date(ts);
+  const day = String(d.getDate()).padStart(2,"0");
+  const mon = String(d.getMonth() + 1).padStart(2,"0");
+  const h = String(d.getHours()).padStart(2,"0");
+  const m = String(d.getMinutes()).padStart(2,"0");
+  return `${day}.${mon} ${h}:${m}`;
+}
+
+// ============ КНОПКИ СОРТУВАННЯ ============
 function updateSortButtons() {
   if (sortMode === "time") {
     sortTimeBtn.classList.add("active");
@@ -825,6 +1086,12 @@ function render() {
     const t = state[fbKey];
     const timerEl = btn.querySelector(".timer");
     btn.classList.remove("alive","spawn","done");
+
+    if (editEnabled || SHOW_SECRET) {
+      btn.classList.remove("locked");
+    } else {
+      btn.classList.add("locked");
+    }
 
     if (!t) {
       timerEl.textContent = "—";
