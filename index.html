@@ -513,12 +513,10 @@ function build() {
 
   orderScores.sort((a, b) => {
     if (a.loc.isSecret !== b.loc.isSecret) return a.loc.isSecret ? 1 : -1;
-
     if (sortMode === "name") {
       if (a.isEmpty !== b.isEmpty) return a.isEmpty ? 1 : -1;
       return a.loc.ua.localeCompare(b.loc.ua, "uk");
     }
-
     if (a.category !== b.category) return a.category - b.category;
     if (a.category === 0) return b.subPriority - a.subPriority;
     return a.subPriority - b.subPriority;
