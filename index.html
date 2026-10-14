@@ -557,17 +557,17 @@ function build() {
       btn.onclick = () => {
         if (!editEnabled && !SHOW_SECRET) return;
         initAudio();
-        const ok = confirm(`Kill boss in "${loc.ua} ${c}"?`);
+        const ok = confirm(`Kill boss in "${loc.ua}/${c}"?`);
         if (!ok) return;
         setKill(key, Date.now())
-          .then(() => showUndo(key, loc.ua + " " + c))
+          .then(() => showUndo(key, loc.ua + "/" + c))
           .catch(e => alert("Помилка запису: " + e.message));
       };
 
       btn.oncontextmenu = (e) => {
         e.preventDefault();
         if (!editEnabled && !SHOW_SECRET) return;
-        askConfirm(key, loc.ua + " " + c);
+        askConfirm(key, loc.ua + "/" + c);
       };
 
       btn.innerHTML = `<span>${c}</span><span class="timer">—</span>`;
@@ -837,9 +837,10 @@ function renderHistory() {
 }
 
 function formatKeyLabel(fbKey) {
+  // fbKey типу "F2_1" або "King's Tomb_2"
   const idx = fbKey.lastIndexOf("_");
   if (idx === -1) return fbKey;
-  return fbKey.substring(0, idx) + " " + fbKey.substring(idx + 1);
+  return fbKey.substring(0, idx) + "/" + fbKey.substring(idx + 1);
 }
 
 function decodeKey(fbKey) {
@@ -1162,7 +1163,7 @@ function render() {
     const locUa = key.split("|")[0];
     const chName = key.split("|")[1];
     const shortLoc = topLabelFor(locUa);
-    const label = `${shortLoc} ${chName}`;
+    const label = `${shortLoc}/${chName}`;
 
     const item = { fbKey, label, sortPriority, timeText, copyTime, status: currentStatus };
 
@@ -1277,12 +1278,12 @@ function updateSoonRed() {
     if (isSecret) {
       if (elapsed < SECRET_LOCATION.fixedRespawnMs) {
         const msToRed = SECRET_LOCATION.fixedRespawnMs - elapsed;
-        soon.push({ label: `${shortLoc} ${chName}`, msToRed });
+        soon.push({ label: `${shortLoc}/${chName}`, msToRed });
       }
     } else {
       if (elapsed < MAX_RESPAWN) {
         const msToRed = MAX_RESPAWN - elapsed;
-        soon.push({ label: `${shortLoc} ${chName}`, msToRed });
+        soon.push({ label: `${shortLoc}/${chName}`, msToRed });
       }
     }
   });
